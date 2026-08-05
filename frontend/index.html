@@ -1042,13 +1042,29 @@
         </div>
 
         <!-- Кнопки действий -->
-        <button class="btn btn-secondary" onclick="testScrollAndZone()">
+        <button
+          class="btn btn-secondary"
+          id="testScrollBtn"
+          onclick="testScrollAndZone()"
+        >
           ⚙️ Протестировать скролл (Выбрать зону)
         </button>
-        <button class="btn btn-primary" onclick="startInfiniteReading()">
+        <button
+          class="btn btn-primary"
+          id="startReadingBtn"
+          onclick="startInfiniteReading()"
+        >
           ► Запустить бесконечное чтение
         </button>
-        <button class="btn btn-danger" onclick="resetZone()">
+        <button
+          class="btn btn-secondary"
+          id="stopReadingBtn"
+          onclick="stopInfiniteReading()"
+          disabled
+        >
+          ■ Остановить чтение
+        </button>
+        <button class="btn btn-danger" id="resetZoneBtn" onclick="resetZone()">
           Сбросить зону
         </button>
 
@@ -1375,7 +1391,16 @@
       const statusDiv = document.getElementById("pcStatusText");
       const scrollSlider = document.getElementById("scrollSlider");
       const scrollInput = document.getElementById("scrollInput");
+      const startReadingBtn = document.getElementById("startReadingBtn");
+      const stopReadingBtn = document.getElementById("stopReadingBtn");
       let objectUrl_2 = null;
+
+      // ---- Состояние бесконечного чтения ----
+      let readingActive = false; // true, пока не нажали "Стоп" и не исчерпан лимит попыток
+      let retryCount = 0; // подряд идущие неудачные попытки захвата
+      const MAX_RETRIES = 5; // после стольких неудач подряд — останавливаемся сами
+      const RETRY_DELAY_MS = 3000;
+      let retryTimer = null;
 
       async function updateScrollSetting(value) {
         scrollSlider.value = value;
@@ -1396,6 +1421,7 @@
           console.error("Ошибка обновления скролла:", e);
         }
       }
+
       // Функция тестирования зоны и силы скролла без запуска TTS
       async function testScrollAndZone() {
         if (!getToken()) {
@@ -1403,6 +1429,10 @@
             "Статус: Войдите в аккаунт, чтобы использовать эту функцию";
           return;
         }
+        // Тест зоны и бесконечное чтение не должны идти одновременно —
+        // иначе оба будут дёргать один и тот же плеер/бэкенд параллельно.
+        stopInfiniteReading();
+
         statusDiv.innerText =
           "Статус: Выберите область книги для калибровки...";
         try {
@@ -1427,16 +1457,62 @@
         }
       }
 
-      // Захват области экрана и озвучка. Раньше адрес отдавался напрямую в
-      // src аудиоплеера, но у <audio> нельзя выставить заголовок
-      // Authorization — поэтому теперь запрос идёт через fetch с токеном,
-      // а плееру передаётся Blob-ссылка на уже полученный аудиофайл.
-      async function startInfiniteReading() {
+      // Включает/выключает кнопки "Старт"/"Стоп" в зависимости от того,
+      // идёт ли сейчас цикл бесконечного чтения.
+      function setReadingButtonsState(active) {
+        startReadingBtn.disabled = active;
+        stopReadingBtn.disabled = !active;
+      }
+
+      // Публичный запуск чтения. Повторный клик по "Старт", пока чтение уже
+      // идёт, игнорируется — иначе получим несколько параллельных цепочек
+      // fetch/setTimeout, которые будут наперегонки писать в один плеер.
+      function startInfiniteReading() {
+        if (readingActive) return;
+
         if (!getToken()) {
           statusDiv.innerText =
             "Статус: Войдите в аккаунт, чтобы начать чтение";
           return;
         }
+
+        readingActive = true;
+        retryCount = 0;
+        setReadingButtonsState(true);
+        captureAndPlayCycle();
+      }
+
+      // Останавливает цикл: снимает флаг активности, гасит отложенный
+      // retry, отвязывает обработчики плеера (чтобы onended/onerror не
+      // запустили новый цикл после остановки) и ставит плеер на паузу.
+      function stopInfiniteReading() {
+        readingActive = false;
+        retryCount = 0;
+
+        if (retryTimer !== null) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+
+        player_2.onended = null;
+        player_2.onerror = null;
+        player_2.pause();
+
+        setReadingButtonsState(false);
+        statusDiv.innerText = "Статус: Чтение остановлено";
+      }
+
+      // Захват области экрана и озвучка. Раньше адрес отдавался напрямую в
+      // src аудиоплеера, но у <audio> нельзя выставить заголовок
+      // Authorization — поэтому теперь запрос идёт через fetch с токеном,
+      // а плееру передаётся Blob-ссылка на уже полученный аудиофайл.
+      //
+      // Один проход цикла. Рекурсия идёт не сама через себя напрямую, а
+      // через onended/scheduleRetry — и каждый шаг сверяется с флагом
+      // readingActive, чтобы после нажатия "Стоп" цепочка гарантированно
+      // прервалась, а не долбила бэкенд в фоне.
+      async function captureAndPlayCycle() {
+        if (!readingActive) return;
 
         statusDiv.innerText = "Статус: Захват области/Чтение страницы...";
 
@@ -1446,17 +1522,20 @@
             { headers: authHeaders() },
           );
 
+          if (!readingActive) return; // остановили, пока ждали ответ
+
           if (handleAuthResponse(resp.status)) {
             statusDiv.innerText = "Статус: Сессия истекла — войдите снова";
+            stopInfiniteReading();
             return;
           }
 
           if (!resp.ok) {
-            statusDiv.innerText =
-              "Статус: Пропуск пустой зоны или ошибка. Пробуем снова через 3 сек...";
-            setTimeout(startInfiniteReading, 3000);
+            scheduleRetry();
             return;
           }
+
+          retryCount = 0; // успешный запрос — счётчик неудач подряд сбрасываем
 
           const blob = await resp.blob();
           if (objectUrl_2) URL.revokeObjectURL(objectUrl_2);
@@ -1464,25 +1543,46 @@
           player_2.src = objectUrl_2;
 
           player_2.onended = () => {
+            if (!readingActive) return;
             statusDiv.innerText =
               "Статус: Перелистывание и захват следующей страницы...";
-            startInfiniteReading();
+            captureAndPlayCycle();
           };
 
           player_2.onerror = () => {
-            statusDiv.innerText =
-              "Статус: Пропуск пустой зоны или ошибка. Пробуем снова через 3 сек...";
-            setTimeout(startInfiniteReading, 3000);
+            if (!readingActive) return;
+            scheduleRetry();
           };
 
           await player_2.play();
-          statusDiv.innerText = "Статус: Слушаем текст...";
+          if (readingActive) {
+            statusDiv.innerText = "Статус: Слушаем текст...";
+          }
         } catch (e) {
-          statusDiv.innerText =
-            "Статус: Ошибка связи с сервером. Пробуем снова через 3 сек...";
-          setTimeout(startInfiniteReading, 3000);
           console.log(e);
+          scheduleRetry();
         }
+      }
+
+      // Планирует следующую попытку через RETRY_DELAY_MS. Если подряд
+      // накопилось MAX_RETRIES неудач — останавливает чтение полностью,
+      // вместо того чтобы долбить сервер бесконечно.
+      function scheduleRetry() {
+        if (!readingActive) return;
+
+        retryCount += 1;
+
+        if (retryCount > MAX_RETRIES) {
+          statusDiv.innerText = `Статус: ${MAX_RETRIES} неудачных попыток подряд — чтение остановлено. Проверьте зону/бэкенд и запустите заново.`;
+          stopInfiniteReading();
+          return;
+        }
+
+        statusDiv.innerText = `Статус: Пропуск пустой зоны или ошибка. Попытка ${retryCount}/${MAX_RETRIES}, повтор через 3 сек...`;
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          captureAndPlayCycle();
+        }, RETRY_DELAY_MS);
       }
 
       async function resetZone() {
@@ -1491,6 +1591,10 @@
             "Статус: Войдите в аккаунт, чтобы сбросить зону";
           return;
         }
+        // Сброс зоны во время активного чтения не имеет смысла — читалка
+        // всё равно продолжит запрашивать уже несуществующую зону.
+        stopInfiniteReading();
+
         try {
           const resp = await fetch("http://127.0.0.1:8000/PC_screen/reset", {
             headers: authHeaders(),

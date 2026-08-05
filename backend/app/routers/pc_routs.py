@@ -13,7 +13,7 @@ from PIL import Image, ImageGrab
 from ..models import Users
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/PC_screen", tags=["PC Screen Live Reader"])
+router = APIRouter(prefix="/PC_screen", tags=["PC Screen"])
 
 SAVED_BBOX = None
 SCROLL = None
@@ -115,7 +115,6 @@ async def set_scroll(value: int, current_user: Users = Depends(get_current_user)
 
 @router.post("/test-scroll")
 async def test_scroll_only(current_user: Users = Depends(get_current_user)):
-    """Тестовый эндпоинт: только фиксирует зону и делает один проверочный скролл"""
     try:
         capture_screen_by_os()
         pyautogui.scroll(SCROLL) 

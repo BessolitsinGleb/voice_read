@@ -62,7 +62,7 @@ async def verify_email(data: VerifyEmailschema, db: AsyncSession = Depends(get_d
         raise HTTPException(400, "Код не найден")
 
     if email_code.code != data.code:
-        return {"email code": email_code.code, "data code": data.code}
+        raise HTTPException(400, "неверный код")
 
     if email_code.expires_at < datetime.utcnow():
         raise HTTPException(400, "Код истек")
