@@ -1,0 +1,4 @@
+{
+  "editor.inlineSuggest.edits.showCollapsed": true,
+  "python-envs.defaultEnvManager": "ms-python.python:system"
+}

@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вход и регистрация — audio_pdf</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #12161d;
+        --surface: #1b212b;
+        --surface-2: #232a35;
+        --border: #2e3642;
+        --border-strong: #3d4652;
+        --text-primary: #ece6d8;
+        --text-secondary: #9a9486;
+        --text-muted: #6e6a5c;
+        --accent: #d4a24e;
+        --accent-strong: #e8be72;
+        --accent-text: #1b140a;
+        --error: #e2574c;
+        --error-bg: rgba(226, 87, 76, 0.12);
+        --radius-lg: 16px;
+        --radius-md: 10px;
+        --radius-sm: 6px;
+        --font-display: "Literata", serif;
+        --font-ui: "Inter", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px 16px;
+      }
+
+      /* ===================== Переключатель вкладок ===================== */
+      .segmented-control {
+        position: relative;
+        display: flex;
+        background-color: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 3px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 420px;
+        user-select: none;
+        margin-bottom: 20px;
+      }
+
+      .segment-tab {
+        position: relative;
+        flex: 1;
+        text-align: center;
+        padding: 9px 0;
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--accent-text);
+        z-index: 2;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        border-radius: 9px;
+      }
+
+      .segment-tab.inactive {
+        color: var(--text-secondary);
+      }
+
+      .segment-slider {
+        position: absolute;
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        background-color: var(--accent);
+        border-radius: 9px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+        z-index: 1;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .segmented-control.tab-2-active .segment-slider {
+        transform: translateX(100%);
+      }
+
+      .tab-content {
+        display: none;
+        width: 100%;
+      }
+
+      .tab-content.active {
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ===================== Карточка ===================== */
+      main.card {
+        width: 100%;
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 32px 28px 28px;
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 8px;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 26px;
+        line-height: 1.25;
+        margin: 0 0 8px;
+        color: var(--text-primary);
+      }
+
+      .sub {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin: 0 0 26px;
+      }
+
+      .sub b {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ===================== Поля формы ===================== */
+      .field {
+        margin-bottom: 16px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+        letter-spacing: 0.02em;
+      }
+
+      .field input {
+        width: 100%;
+        padding: 11px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        outline: none;
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease;
+      }
+
+      .field input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .field input:focus {
+        border-color: var(--accent);
+      }
+
+      .field input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+
+      /* ===================== Кнопки ===================== */
+      .btn-primary {
+        width: 100%;
+        margin-top: 6px;
+        padding: 13px 20px;
+        background: var(--accent);
+        color: var(--accent-text);
+        border: none;
+        border-radius: var(--radius-md);
+        font-family: var(--font-ui);
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-strong);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-primary:focus-visible {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+      }
+
+      /* ===================== Статус / ошибки ===================== */
+      .status {
+        margin-top: 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+
+      .bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 16px;
+      }
+
+      .bars span {
+        width: 3px;
+        background: var(--accent);
+        border-radius: 2px;
+        animation: wave1 0.9s ease-in-out infinite;
+      }
+
+      .bars span:nth-child(1) {
+        height: 6px;
+        animation-delay: 0s;
+      }
+      .bars span:nth-child(2) {
+        height: 14px;
+        animation-delay: 0.1s;
+      }
+      .bars span:nth-child(3) {
+        height: 9px;
+        animation-delay: 0.2s;
+      }
+      .bars span:nth-child(4) {
+        height: 16px;
+        animation-delay: 0.3s;
+      }
+      .bars span:nth-child(5) {
+        height: 7px;
+        animation-delay: 0.4s;
+      }
+
+      @keyframes wave1 {
+        0%,
+        100% {
+          transform: scaleY(0.4);
+        }
+        50% {
+          transform: scaleY(1);
+        }
+      }
+
+      .error {
+        margin-top: 16px;
+        padding: 12px 14px;
+        background: var(--error-bg);
+        border: 1px solid var(--error);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        color: var(--error);
+        line-height: 1.5;
+      }
+
+      /* ===================== Ссылки-переключатели ===================== */
+      .switch-hint {
+        margin: 22px 0 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+
+      .switch-hint a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .switch-hint a:hover {
+        color: var(--accent-strong);
+        text-decoration: underline;
+      }
+
+      .switch-hint a.disabled {
+        color: var(--text-muted);
+        pointer-events: none;
+        text-decoration: none;
+      }
+
+      #verifyEmailLabel {
+        color: var(--text-primary);
+      }
+
+      /* ===================== Приветственный экран ===================== */
+      .welcome-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        z-index: 1000;
+      }
+
+      .welcome-overlay.visible {
+        opacity: 1;
+      }
+
+      .welcome-card {
+        text-align: center;
+      }
+
+      .welcome-card .eyebrow {
+        display: block;
+      }
+
+      .welcome-card h1 {
+        font-size: 32px;
+        color: var(--accent-strong);
+        margin: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bars span {
+          animation: none;
+          transform: scaleY(0.75);
+        }
+        .welcome-overlay {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Переключатель вкладок -->
+    <div class="segmented-control" id="segmentedControl">
+      <div class="segment-slider"></div>
+      <div class="segment-tab" onclick="switchTab(1)">Вход</div>
+      <div class="segment-tab inactive" onclick="switchTab(2)">Регистрация</div>
+    </div>
+
+    <!-- ===================== Вкладка 1: Вход ===================== -->
+    <div class="tab-content active" id="contentTab1">
+      <main class="card">
+        <p class="eyebrow">Аккаунт</p>
+        <h1>С возвращением</h1>
+        <p class="sub">Войдите, чтобы продолжить работу с документами.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <input
+              type="email"
+              id="loginEmail"
+              placeholder="you@example.com"
+              autocomplete="username"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Пароль</label>
+            <input
+              type="password"
+              id="loginPassword"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn-primary" id="loginBtn">Войти</button>
+        </form>
+
+        <div class="status" id="loginStatus" hidden>
+          <div class="bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <span id="loginStatusText">Выполняется вход…</span>
+        </div>
+
+        <div class="error" id="loginError" hidden>
+          <span id="loginErrorText"></span>
+        </div>
+
+        <p class="switch-hint">
+          Нет аккаунта?
+          <a onclick="switchTab(2)">Зарегистрироваться</a>
+        </p>
+      </main>
+    </div>
+
+    <!-- ===================== Вкладка 2: Регистрация ===================== -->
+    <div class="tab-content" id="contentTab2">
+      <main class="card">
+        <!-- Форма регистрации -->
+        <div id="registerSection">
+          <p class="eyebrow">Аккаунт</p>
+          <h1>Создать аккаунт</h1>
+          <p class="sub">
+            Понадобится email — на него пришлём код подтверждения.
+          </p>
+
+          <form id="registerForm" novalidate>
+            <div class="field">
+              <label for="regUsername">Имя пользователя</label>
+              <input
+                type="text"
+                id="regUsername"
+                placeholder="Как к вам обращаться"
+                autocomplete="nickname"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="regEmail">Email</label>
+              <input
+                type="email"
+                id="regEmail"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="regPassword">Пароль</label>
+              <input
+                type="password"
+                id="regPassword"
+                placeholder="Минимум 8 символов"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn-primary" id="regBtn">
+              Зарегистрироваться
+            </button>
+          </form>
+
+          <div class="status" id="regStatus" hidden>
+            <div class="bars">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span id="regStatusText">Отправляем…</span>
+          </div>
+
+          <div class="error" id="regError" hidden>
+            <span id="regErrorText"></span>
+          </div>
+
+          <p class="switch-hint">
+            Уже есть аккаунт?
+            <a onclick="switchTab(1)">Войти</a>
+          </p>
+        </div>
+
+        <!-- Подтверждение кода из письма -->
+        <div id="verifySection" hidden>
+          <p class="eyebrow">Подтверждение</p>
+          <h1>Проверьте почту</h1>
+          <p class="sub">
+            Мы отправили код на <b id="verifyEmailLabel"></b>. Введите его ниже.
+          </p>
+
+          <form id="verifyForm" novalidate>
+            <div class="field">
+              <label for="verifyCode">Код подтверждения</label>
+              <input
+                type="text"
+                id="verifyCode"
+                placeholder="000000"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn-primary" id="verifyBtn">
+              Подтвердить
+            </button>
+          </form>
+
+          <div class="status" id="verifyStatus" hidden>
+            <div class="bars">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span id="verifyStatusText">Проверяем…</span>
+          </div>
+
+          <div class="error" id="verifyError" hidden>
+            <span id="verifyErrorText"></span>
+          </div>
+
+          <p class="switch-hint">
+            Не пришёл код?
+            <a id="resendLink" onclick="resendCode()">Отправить повторно</a>
+            &nbsp;·&nbsp;
+            <a onclick="backToRegister()">Изменить email</a>
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <!-- ===================== Приветственный экран ===================== -->
+    <div class="welcome-overlay" id="welcomeOverlay" hidden>
+      <div class="welcome-card">
+        <p class="eyebrow">Готово</p>
+        <h1 id="welcomeText">Hello!</h1>
+      </div>
+    </div>
+
+    <!-- ===================== Логика переключателя вкладок ===================== -->
+    <script>
+      function switchTab(tabIndex) {
+        const control = document.getElementById("segmentedControl");
+        const tabs = control.querySelectorAll(".segment-tab");
+        const content1 = document.getElementById("contentTab1");
+        const content2 = document.getElementById("contentTab2");
+
+        if (tabIndex === 1) {
+          control.classList.remove("tab-2-active");
+          tabs[0].classList.remove("inactive");
+          tabs[1].classList.add("inactive");
+          content1.classList.add("active");
+          content2.classList.remove("active");
+        } else {
+          control.classList.add("tab-2-active");
+          tabs[0].classList.add("inactive");
+          tabs[1].classList.remove("inactive");
+          content1.classList.remove("active");
+          content2.classList.add("active");
+        }
+      }
+    </script>
+
+    <!-- ===================== Логика авторизации ===================== -->
+    <script>
+      // Всегда бьём напрямую в адрес FastAPI-бэкенда, а не по относительному
+      // пути — иначе, если страница отдаётся отдельным статик-сервером
+      // (Live Server, `python -m http.server` и т.п.), POST уйдёт на него,
+      // а не на бэкенд. Тот же приём, что и в index.html (ENDPOINT там тоже
+      // захардкожен на http://127.0.0.1:8000, а не строится через API_BASE).
+      const API_BASE = "http://127.0.0.1:8000";
+      const EP = {
+        register: `${API_BASE}/reg/regis`,
+        login: `${API_BASE}/reg/login`,
+        verify: `${API_BASE}/reg/verify_email`,
+        resend: `${API_BASE}/reg/resend_code`,
+        me: `${API_BASE}/reg/me`,
+      };
+
+      // ---- Элементы: Вход ----
+      const loginForm = document.getElementById("loginForm");
+      const loginEmail = document.getElementById("loginEmail");
+      const loginPassword = document.getElementById("loginPassword");
+      const loginBtn = document.getElementById("loginBtn");
+      const loginStatus = document.getElementById("loginStatus");
+      const loginStatusText = document.getElementById("loginStatusText");
+      const loginError = document.getElementById("loginError");
+      const loginErrorText = document.getElementById("loginErrorText");
+
+      // ---- Элементы: Регистрация ----
+      const registerSection = document.getElementById("registerSection");
+      const registerForm = document.getElementById("registerForm");
+      const regUsername = document.getElementById("regUsername");
+      const regEmail = document.getElementById("regEmail");
+      const regPassword = document.getElementById("regPassword");
+      const regBtn = document.getElementById("regBtn");
+      const regStatus = document.getElementById("regStatus");
+      const regStatusText = document.getElementById("regStatusText");
+      const regError = document.getElementById("regError");
+      const regErrorText = document.getElementById("regErrorText");
+
+      // ---- Элементы: Подтверждение кода ----
+      const verifySection = document.getElementById("verifySection");
+      const verifyForm = document.getElementById("verifyForm");
+      const verifyEmailLabel = document.getElementById("verifyEmailLabel");
+      const verifyCode = document.getElementById("verifyCode");
+      const verifyBtn = document.getElementById("verifyBtn");
+      const verifyStatus = document.getElementById("verifyStatus");
+      const verifyStatusText = document.getElementById("verifyStatusText");
+      const verifyError = document.getElementById("verifyError");
+      const verifyErrorText = document.getElementById("verifyErrorText");
+      const resendLink = document.getElementById("resendLink");
+
+      // ---- Приветственный экран ----
+      const welcomeOverlay = document.getElementById("welcomeOverlay");
+      const welcomeText = document.getElementById("welcomeText");
+
+      // Данные незавершённой регистрации, нужны для авто-входа после подтверждения кода
+      const pending = { username: "", email: "", password: "" };
+      let resendCooldownTimer = null;
+
+      function showStatus(el, textEl, text) {
+        textEl.textContent = text;
+        el.hidden = false;
+      }
+      function hideStatus(el) {
+        el.hidden = true;
+      }
+      function showError(el, textEl, msg) {
+        textEl.textContent = msg;
+        el.hidden = false;
+      }
+      function hideError(el) {
+        el.hidden = true;
+      }
+
+      // Достаём читаемое сообщение об ошибке из ответа FastAPI
+      // (detail может быть строкой или списком ошибок валидации Pydantic)
+      async function extractError(response, fallback) {
+        try {
+          const data = await response.json();
+          if (Array.isArray(data.detail)) {
+            return data.detail
+              .map((d) => d.msg || JSON.stringify(d))
+              .join("; ");
+          }
+          if (typeof data.detail === "string") return data.detail;
+          if (typeof data.message === "string") return data.message;
+        } catch (_) {
+          // тело не JSON — используем сообщение по умолчанию
+        }
+        return fallback || `Ошибка сервера (${response.status})`;
+      }
+
+      function networkErrorMessage() {
+        return "Не удалось подключиться к серверу. Проверьте, что бэкенд запущен и разрешает CORS-запросы с этой страницы.";
+      }
+
+      // ===================== Вход =====================
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError(loginError);
+
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value;
+        if (!email || !password) {
+          showError(loginError, loginErrorText, "Заполните email и пароль");
+          return;
+        }
+
+        loginBtn.disabled = true;
+        showStatus(loginStatus, loginStatusText, "Выполняется вход…");
+
+        try {
+          const body = new URLSearchParams();
+          body.append("username", email);
+          body.append("password", password);
+
+          const resp = await fetch(EP.login, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body,
+          });
+
+          if (!resp.ok) {
+            if (resp.status === 403) {
+              // Почта не подтверждена — переводим на экран подтверждения кода
+              pending.email = email;
+              pending.password = password;
+              switchTab(2);
+              showVerifySection();
+              verifyEmailLabel.textContent = email;
+              await triggerResend(true);
+              showError(
+                verifyError,
+                verifyErrorText,
+                "Почта ещё не подтверждена. Мы отправили новый код — введите его, чтобы войти.",
+              );
+              return;
+            }
+            const msg = await extractError(resp, "Неверный email или пароль");
+            showError(loginError, loginErrorText, msg);
+            return;
+          }
+
+          const data = await resp.json();
+          localStorage.setItem("access_token", data.access_token);
+          localStorage.setItem("token_type", data.token_type || "bearer");
+          window.location.href = "index.html";
+        } catch (err) {
+          showError(loginError, loginErrorText, networkErrorMessage());
+        } finally {
+          loginBtn.disabled = false;
+          hideStatus(loginStatus);
+        }
+      });
+
+      // ===================== Регистрация =====================
+      registerForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError(regError);
+
+        const username = regUsername.value.trim();
+        const email = regEmail.value.trim();
+        const password = regPassword.value;
+
+        if (!username || !email || !password) {
+          showError(regError, regErrorText, "Заполните все поля");
+          return;
+        }
+        if (password.length < 8) {
+          showError(
+            regError,
+            regErrorText,
+            "Пароль должен быть не короче 8 символов",
+          );
+          return;
+        }
+
+        regBtn.disabled = true;
+        showStatus(regStatus, regStatusText, "Отправляем запрос…");
+
+        try {
+          const resp = await fetch(EP.register, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, email, password }),
+          });
+
+          if (!resp.ok) {
+            const msg = await extractError(
+              resp,
+              "Не удалось зарегистрироваться",
+            );
+            showError(regError, regErrorText, msg);
+            return;
+          }
+
+          pending.username = username;
+          pending.email = email;
+          pending.password = password;
+
+          showVerifySection();
+          verifyEmailLabel.textContent = email;
+          startResendCooldown(30); // код уже отправлен при регистрации
+        } catch (err) {
+          showError(regError, regErrorText, networkErrorMessage());
+        } finally {
+          regBtn.disabled = false;
+          hideStatus(regStatus);
+        }
+      });
+
+      function showVerifySection() {
+        registerSection.hidden = true;
+        verifySection.hidden = false;
+        verifyCode.value = "";
+        hideError(verifyError);
+        verifyCode.focus();
+      }
+
+      function backToRegister() {
+        verifySection.hidden = true;
+        registerSection.hidden = false;
+        clearInterval(resendCooldownTimer);
+        resendLink.textContent = "Отправить повторно";
+        resendLink.classList.remove("disabled");
+      }
+
+      // ===================== Подтверждение кода =====================
+      verifyForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideError(verifyError);
+
+        const code = verifyCode.value.trim();
+        if (!code) {
+          showError(verifyError, verifyErrorText, "Введите код из письма");
+          return;
+        }
+
+        verifyBtn.disabled = true;
+        showStatus(verifyStatus, verifyStatusText, "Проверяем код…");
+
+        try {
+          const resp = await fetch(EP.verify, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: pending.email, code }),
+          });
+
+          let data = {};
+          try {
+            data = await resp.json();
+          } catch (_) {}
+
+          if (!resp.ok) {
+            showError(
+              verifyError,
+              verifyErrorText,
+              typeof data.detail === "string"
+                ? data.detail
+                : "Не удалось подтвердить почту",
+            );
+            return;
+          }
+
+          // При несовпадении кода бэкенд отвечает 200 и возвращает оба кода,
+          // а не ошибку — обрабатываем этот случай отдельно.
+          if (data["email code"] !== undefined) {
+            showError(
+              verifyError,
+              verifyErrorText,
+              "Неверный код подтверждения",
+            );
+            return;
+          }
+
+          // Почта подтверждена — выполняем вход и показываем приветствие
+          showStatus(verifyStatus, verifyStatusText, "Выполняется вход…");
+          await loginAndGreet();
+        } catch (err) {
+          showError(verifyError, verifyErrorText, networkErrorMessage());
+        } finally {
+          verifyBtn.disabled = false;
+          hideStatus(verifyStatus);
+        }
+      });
+
+      async function loginAndGreet() {
+        try {
+          const body = new URLSearchParams();
+          body.append("username", pending.email);
+          body.append("password", pending.password);
+
+          const resp = await fetch(EP.login, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body,
+          });
+
+          if (!resp.ok) {
+            // Почта подтверждена, но авто-вход не удался — просим войти вручную
+            loginEmail.value = pending.email;
+            switchTab(1);
+            showError(
+              loginError,
+              loginErrorText,
+              "Почта подтверждена. Войдите, пожалуйста, вручную.",
+            );
+            return;
+          }
+
+          const data = await resp.json();
+          localStorage.setItem("access_token", data.access_token);
+          localStorage.setItem("token_type", data.token_type || "bearer");
+
+          let displayName = pending.username;
+          try {
+            const meResp = await fetch(EP.me, {
+              headers: { Authorization: `Bearer ${data.access_token}` },
+            });
+            if (meResp.ok) {
+              const me = await meResp.json();
+              if (me.username) displayName = me.username;
+            }
+          } catch (_) {
+            // /me недоступен — используем имя из формы регистрации
+          }
+
+          showWelcome(displayName);
+        } catch (err) {
+          loginEmail.value = pending.email;
+          switchTab(1);
+          showError(
+            loginError,
+            loginErrorText,
+            "Почта подтверждена. Войдите, пожалуйста, вручную.",
+          );
+        }
+      }
+
+      function showWelcome(username) {
+        welcomeText.textContent = `Hello ${username}!`;
+        welcomeOverlay.hidden = false;
+        requestAnimationFrame(() => welcomeOverlay.classList.add("visible"));
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1000);
+      }
+
+      // ===================== Повторная отправка кода =====================
+      async function triggerResend(silent) {
+        if (!pending.email) return;
+        try {
+          const url = `${EP.resend}?email=${encodeURIComponent(pending.email)}`;
+          const resp = await fetch(url, { method: "POST" });
+
+          if (!resp.ok) {
+            if (!silent) {
+              const msg = await extractError(resp, "Не удалось отправить код");
+              showError(verifyError, verifyErrorText, msg);
+            }
+            return;
+          }
+
+          if (!silent) hideError(verifyError);
+          startResendCooldown(30);
+        } catch (err) {
+          if (!silent)
+            showError(verifyError, verifyErrorText, networkErrorMessage());
+        }
+      }
+
+      function resendCode() {
+        if (resendLink.classList.contains("disabled")) return;
+        triggerResend(false);
+      }
+
+      function startResendCooldown(seconds) {
+        let remaining = seconds;
+        resendLink.classList.add("disabled");
+        resendLink.textContent = `Отправить повторно (${remaining}с)`;
+        clearInterval(resendCooldownTimer);
+        resendCooldownTimer = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            clearInterval(resendCooldownTimer);
+            resendLink.textContent = "Отправить повторно";
+            resendLink.classList.remove("disabled");
+          } else {
+            resendLink.textContent = `Отправить повторно (${remaining}с)`;
+          }
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>

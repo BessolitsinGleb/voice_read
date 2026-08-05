@@ -1,0 +1,1513 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>audio_pdf — озвучка документа и экрана</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #12161d;
+        --surface: #1b212b;
+        --surface-2: #232a35;
+        --border: #2e3642;
+        --border-strong: #3d4652;
+        --text-primary: #ece6d8;
+        --text-secondary: #9a9486;
+        --text-muted: #6e6a5c;
+        --accent: #d4a24e;
+        --accent-strong: #e8be72;
+        --accent-text: #1b140a;
+        --error: #e2574c;
+        --error-bg: rgba(226, 87, 76, 0.12);
+        --radius-lg: 16px;
+        --radius-md: 10px;
+        --radius-sm: 6px;
+        --font-display: "Literata", serif;
+        --font-ui: "Inter", system-ui, sans-serif;
+        --font-mono: "IBM Plex Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px 16px;
+      }
+
+      /* ===================== Переключатель вкладок ===================== */
+      .segmented-control {
+        position: relative;
+        display: flex;
+        background-color: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 3px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 460px;
+        user-select: none;
+        margin-bottom: 20px;
+      }
+
+      .segment-tab {
+        position: relative;
+        flex: 1;
+        text-align: center;
+        padding: 9px 0;
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--accent-text);
+        z-index: 2;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        border-radius: 9px;
+      }
+
+      .segment-tab.inactive {
+        color: var(--text-secondary);
+      }
+
+      .segment-slider {
+        position: absolute;
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        background-color: var(--accent);
+        border-radius: 9px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+        z-index: 1;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .segmented-control.tab-2-active .segment-slider {
+        transform: translateX(100%);
+      }
+
+      .tab-content {
+        display: none;
+        width: 100%;
+      }
+
+      .tab-content.active {
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ===================== Общие элементы карточек ===================== */
+      main.card {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 32px 28px 28px;
+      }
+
+      #contentTab1 main.card {
+        max-width: 440px;
+      }
+      #contentTab2 main.card {
+        max-width: 460px;
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 8px;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 26px;
+        line-height: 1.25;
+        margin: 0 0 8px;
+        color: var(--text-primary);
+      }
+
+      .sub {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin: 0 0 28px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ===================== Вкладка 1: audio_pdf (index.html) ===================== */
+      #contentTab1 .dropzone {
+        border: 1.5px dashed var(--border-strong);
+        border-radius: var(--radius-md);
+        padding: 28px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease;
+      }
+      #contentTab1 .dropzone:hover,
+      #contentTab1 .dropzone.dragover {
+        border-color: var(--accent);
+        background: var(--surface-2);
+      }
+      #contentTab1 .dropzone:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      #contentTab1 .doc-icon {
+        margin: 0 auto 14px;
+        display: block;
+      }
+      #contentTab1 .doc-icon rect {
+        fill: none;
+        stroke: var(--border-strong);
+        stroke-width: 1.5;
+      }
+      #contentTab1 .doc-icon line {
+        stroke: var(--text-muted);
+        stroke-width: 1.5;
+        stroke-linecap: round;
+      }
+      #contentTab1 .dropzone-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+      #contentTab1 .dropzone-text b {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+      #contentTab1 .dropzone-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      #contentTab1 input[type="file"] {
+        display: none;
+      }
+      #contentTab1 .fileinfo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 14px;
+        padding: 10px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+      #contentTab1 .fileinfo-name {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #contentTab1 .fileinfo-size {
+        font-size: 12px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      #contentTab1 .fileinfo-remove {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        padding: 0 2px;
+        flex-shrink: 0;
+      }
+      #contentTab1 .fileinfo-remove:hover {
+        color: var(--error);
+      }
+      #contentTab1 button.primary {
+        width: 100%;
+        margin-top: 20px;
+        padding: 13px 20px;
+        background: var(--accent);
+        color: var(--accent-text);
+        border: none;
+        border-radius: var(--radius-md);
+        font-family: var(--font-ui);
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          opacity 0.15s ease;
+      }
+      #contentTab1 button.primary:hover:not(:disabled) {
+        background: var(--accent-strong);
+      }
+      #contentTab1 button.primary:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      #contentTab1 button.primary:focus-visible {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+      }
+      #contentTab1 .status {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      #contentTab1 .bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 16px;
+      }
+      #contentTab1 .bars span {
+        width: 3px;
+        background: var(--accent);
+        border-radius: 2px;
+        animation: wave1 0.9s ease-in-out infinite;
+      }
+      #contentTab1 .bars span:nth-child(1) {
+        height: 6px;
+        animation-delay: 0s;
+      }
+      #contentTab1 .bars span:nth-child(2) {
+        height: 14px;
+        animation-delay: 0.1s;
+      }
+      #contentTab1 .bars span:nth-child(3) {
+        height: 9px;
+        animation-delay: 0.2s;
+      }
+      #contentTab1 .bars span:nth-child(4) {
+        height: 16px;
+        animation-delay: 0.3s;
+      }
+      #contentTab1 .bars span:nth-child(5) {
+        height: 7px;
+        animation-delay: 0.4s;
+      }
+      @keyframes wave1 {
+        0%,
+        100% {
+          transform: scaleY(0.4);
+        }
+        50% {
+          transform: scaleY(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #contentTab1 .bars span {
+          animation: none;
+          transform: scaleY(0.75);
+        }
+      }
+      #contentTab1 .status-timer {
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        margin-left: auto;
+      }
+      #contentTab1 .error {
+        margin-top: 20px;
+        padding: 12px 14px;
+        background: var(--error-bg);
+        border: 1px solid var(--error);
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        color: var(--error);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      #contentTab1 .error button {
+        background: none;
+        border: 1px solid var(--error);
+        color: var(--error);
+        border-radius: var(--radius-sm);
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      #contentTab1 .player {
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+      #contentTab1 .player-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #contentTab1 .play-btn {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        border: 1px solid var(--border-strong);
+        background: var(--surface-2);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #contentTab1 .play-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      #contentTab1 .play-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      #contentTab1 input[type="range"] {
+        flex: 1;
+        accent-color: var(--accent);
+        height: 4px;
+      }
+      #contentTab1 .time {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+        min-width: 38px;
+        text-align: right;
+      }
+      #contentTab1 .player-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+      }
+      #contentTab1 .speed-group {
+        display: flex;
+        gap: 6px;
+      }
+      #contentTab1 .speed-btn {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        padding: 5px 9px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
+      #contentTab1 .speed-btn:hover {
+        border-color: var(--border-strong);
+        color: var(--text-primary);
+      }
+      #contentTab1 .speed-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+      }
+      #contentTab1 .download-link {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+      #contentTab1 .download-link:hover {
+        color: var(--accent);
+      }
+
+      /* ===================== Вкладка 2: Авто-читалка экрана (page.html) ===================== */
+      #contentTab2 .scroll-settings {
+        margin: 0 0 24px;
+        padding: 18px 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+      }
+      #contentTab2 .scroll-settings label {
+        display: block;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 14px;
+        letter-spacing: 0.02em;
+      }
+      #contentTab2 .control-group {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      #contentTab2 input[type="range"] {
+        flex: 1;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: var(--border-strong);
+        border-radius: 3px;
+        outline: none;
+        cursor: pointer;
+      }
+      #contentTab2 input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--surface);
+        box-shadow: 0 0 0 2px var(--border-strong);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      #contentTab2 input[type="range"]::-webkit-slider-thumb:hover {
+        background: var(--accent-strong);
+      }
+      #contentTab2 input[type="number"] {
+        width: 65px;
+        padding: 8px 6px;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 15px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        outline: none;
+        transition: border-color 0.15s ease;
+
+        -moz-appearance: textfield;
+        -webkit-appearance: none;
+        appearance: textfield;
+        margin: 0;
+      }
+      #contentTab2 input[type="number"]::-webkit-inner-spin-button,
+      #contentTab2 input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      #contentTab2 input[type="number"]:focus {
+        border-color: var(--accent);
+      }
+      #contentTab2 .btn {
+        display: inline-block;
+        width: 100%;
+        padding: 13px 20px;
+        font-family: var(--font-ui);
+        font-weight: 600;
+        font-size: 15px;
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition:
+          background 0.15s ease,
+          opacity 0.15s ease,
+          box-shadow 0.15s ease;
+        margin-bottom: 10px;
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+      #contentTab2 .btn:last-child {
+        margin-bottom: 0;
+      }
+      #contentTab2 .btn:focus-visible {
+        outline: 2px solid var(--accent-strong);
+        outline-offset: 2px;
+      }
+      #contentTab2 .btn-primary {
+        background: var(--accent);
+        color: var(--accent-text);
+      }
+      #contentTab2 .btn-primary:hover:not(:disabled) {
+        background: var(--accent-strong);
+      }
+      #contentTab2 .btn-secondary {
+        background: var(--surface-2);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+      }
+      #contentTab2 .btn-secondary:hover:not(:disabled) {
+        background: var(--border);
+        border-color: var(--border-strong);
+      }
+      #contentTab2 .btn-danger {
+        background: transparent;
+        color: var(--error);
+        border: 1px solid var(--error);
+      }
+      #contentTab2 .btn-danger:hover:not(:disabled) {
+        background: var(--error-bg);
+      }
+      #contentTab2 .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      #contentTab2 .status {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        padding: 8px 0;
+      }
+      #contentTab2 .bars {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 16px;
+      }
+      #contentTab2 .bars span {
+        width: 3px;
+        background: var(--accent);
+        border-radius: 2px;
+        animation: wave2 0.9s ease-in-out infinite;
+      }
+      #contentTab2 .bars span:nth-child(1) {
+        height: 6px;
+        animation-delay: 0s;
+      }
+      #contentTab2 .bars span:nth-child(2) {
+        height: 14px;
+        animation-delay: 0.1s;
+      }
+      #contentTab2 .bars span:nth-child(3) {
+        height: 18px;
+        animation-delay: 0.2s;
+      }
+      #contentTab2 .bars span:nth-child(4) {
+        height: 12px;
+        animation-delay: 0.3s;
+      }
+      #contentTab2 .bars span:nth-child(5) {
+        height: 7px;
+        animation-delay: 0.4s;
+      }
+      @keyframes wave2 {
+        0%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.4);
+        }
+      }
+
+      /* Скрытый аудиоплеер вкладки 2 */
+      #contentTab2 #audioPlayer {
+        display: none;
+      }
+
+      /* ===================== Профиль (/reg/me) ===================== */
+      .profile-bar {
+        width: 100%;
+        max-width: 460px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        margin-bottom: 16px;
+      }
+
+      .profile-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .profile-avatar {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--accent-text);
+        font-family: var(--font-ui);
+        font-weight: 600;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .profile-bar.is-loading .profile-avatar,
+      .profile-bar.is-logged-out .profile-avatar {
+        background: var(--surface-2);
+        color: var(--text-muted);
+        border: 1px solid var(--border-strong);
+      }
+
+      .profile-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .profile-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .profile-bar.is-logged-out .profile-name {
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .profile-email {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .profile-actions {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .profile-login-link {
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        text-decoration: none;
+        padding: 7px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-strong);
+        transition:
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      .profile-login-link:hover {
+        border-color: var(--accent);
+        color: var(--accent-strong);
+      }
+
+      .profile-retry-btn,
+      .profile-logout-btn {
+        font-family: var(--font-ui);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--surface-2);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 7px 12px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background 0.15s ease;
+      }
+
+      .profile-retry-btn:hover,
+      .profile-logout-btn:hover {
+        border-color: var(--border-strong);
+        background: var(--border);
+      }
+
+      .profile-logout-btn:focus-visible,
+      .profile-login-link:focus-visible,
+      .profile-retry-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===================== Профиль (/reg/me) ===================== -->
+    <div class="profile-bar is-loading" id="profileBar">
+      <div class="profile-info">
+        <div class="profile-avatar" id="profileAvatar">…</div>
+        <div class="profile-text">
+          <span class="profile-name" id="profileName">Загрузка профиля…</span>
+          <span class="profile-email" id="profileEmail"></span>
+        </div>
+      </div>
+      <div class="profile-actions">
+        <a
+          class="profile-login-link"
+          id="profileLoginLink"
+          href="login.html"
+          hidden
+          >Войти</a
+        >
+        <button class="profile-retry-btn" id="profileRetryBtn" hidden>
+          Повторить
+        </button>
+        <button class="profile-logout-btn" id="logoutBtn" hidden>Выйти</button>
+      </div>
+    </div>
+
+    <!-- ===================== Логика профиля / выхода ===================== -->
+    <script>
+      // Тот же адрес бэкенда, что используется остальными вкладками страницы.
+      const AUTH_API_BASE = "http://127.0.0.1:8000";
+      const ME_ENDPOINT = `${AUTH_API_BASE}/reg/me`;
+
+      // ---- Общие хелперы авторизации, используются и другими вкладками ----
+      // (эндпоинты audio_pdf и PC_screen требуют Bearer-токен на бэкенде —
+      // без него любой запрос падает с 401, даже если фронтенд об этом не знал)
+      function getToken() {
+        return localStorage.getItem("access_token");
+      }
+
+      function authHeaders() {
+        const token = getToken();
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      }
+
+      // Если бэкенд ответил 401/403 — токен невалиден/просрочен: чистим его
+      // и переводим панель профиля в состояние "войдите снова".
+      // Возвращает true, если это был именно случай авторизации.
+      function handleAuthResponse(status) {
+        if (status === 401 || status === 403) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("token_type");
+          showLoggedOut("Сессия истекла — войдите снова");
+          return true;
+        }
+        return false;
+      }
+
+      const profileBar = document.getElementById("profileBar");
+      const profileAvatar = document.getElementById("profileAvatar");
+      const profileName = document.getElementById("profileName");
+      const profileEmail = document.getElementById("profileEmail");
+      const profileLoginLink = document.getElementById("profileLoginLink");
+      const profileRetryBtn = document.getElementById("profileRetryBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function setProfileState(state) {
+        profileBar.classList.remove("is-loading", "is-logged-out", "is-ok");
+        profileBar.classList.add(state);
+        profileLoginLink.hidden = state !== "is-logged-out";
+        profileRetryBtn.hidden = state !== "is-error";
+        logoutBtn.hidden = state !== "is-ok";
+      }
+
+      function showLoggedOut(message) {
+        setProfileState("is-logged-out");
+        profileAvatar.textContent = "?";
+        profileName.textContent = message || "Вы не авторизованы";
+        profileEmail.textContent = "";
+      }
+
+      function showError(message) {
+        profileBar.classList.remove("is-loading", "is-ok");
+        profileBar.classList.add("is-logged-out", "is-error");
+        profileLoginLink.hidden = true;
+        profileRetryBtn.hidden = false;
+        logoutBtn.hidden = true;
+        profileAvatar.textContent = "!";
+        profileName.textContent = message || "Не удалось загрузить профиль";
+        profileEmail.textContent = "";
+      }
+
+      function showProfile(user) {
+        setProfileState("is-ok");
+        profileAvatar.textContent = (user.username || "?")
+          .charAt(0)
+          .toUpperCase();
+        profileName.textContent = user.username;
+        profileEmail.textContent = user.email;
+      }
+
+      async function loadProfile() {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          showLoggedOut("Вы не авторизованы");
+          return;
+        }
+
+        try {
+          const resp = await fetch(ME_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (resp.status === 401 || resp.status === 403) {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("token_type");
+            showLoggedOut("Сессия истекла — войдите снова");
+            return;
+          }
+
+          if (!resp.ok) {
+            showError(`Ошибка профиля (${resp.status})`);
+            return;
+          }
+
+          const user = await resp.json();
+          showProfile(user);
+        } catch (err) {
+          showError(
+            "Не удалось подключиться к серверу. Проверьте, что бэкенд запущен.",
+          );
+        }
+      }
+
+      function logout() {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("token_type");
+        window.location.href = "login.html";
+      }
+
+      logoutBtn.addEventListener("click", logout);
+      profileRetryBtn.addEventListener("click", loadProfile);
+
+      loadProfile();
+    </script>
+
+    <!-- Переключатель вкладок -->
+    <div class="segmented-control" id="segmentedControl">
+      <div class="segment-slider"></div>
+      <div class="segment-tab" onclick="switchTab(1)">Чтение файла</div>
+      <div class="segment-tab inactive" onclick="switchTab(2)">
+        Чтение с экрана(ПК)
+      </div>
+    </div>
+
+    <!-- ===================== Вкладка 1: audio_pdf ===================== -->
+    <div class="tab-content active" id="contentTab1">
+      <main class="card">
+        <p class="eyebrow">audio_pdf</p>
+        <h1>Слушать документ</h1>
+        <p class="sub">Загрузите PDF — сервер извлечёт текст и озвучит его.</p>
+
+        <div
+          class="dropzone"
+          id="dropzone"
+          tabindex="0"
+          role="button"
+          aria-label="Выбрать PDF-файл"
+        >
+          <svg
+            class="doc-icon"
+            width="40"
+            height="48"
+            viewBox="0 0 40 48"
+            fill="none"
+          >
+            <rect x="1" y="1" width="38" height="46" rx="4" />
+            <line x1="9" y1="14" x2="31" y2="14" />
+            <line x1="9" y1="21" x2="31" y2="21" />
+            <line x1="9" y1="28" x2="24" y2="28" />
+          </svg>
+          <div class="dropzone-text">
+            <b>Выберите файл</b> или перетащите сюда
+          </div>
+          <div class="dropzone-hint">PDF, до 50 МБ</div>
+          <input type="file" id="fileInput" accept="application/pdf,.pdf" />
+        </div>
+
+        <div class="fileinfo" id="fileInfo" hidden>
+          <span class="fileinfo-name" id="fileName"></span>
+          <span class="fileinfo-size" id="fileSize"></span>
+          <button
+            class="fileinfo-remove"
+            id="fileRemove"
+            aria-label="Убрать файл"
+          >
+            ×
+          </button>
+        </div>
+
+        <button class="primary" id="speakBtn" disabled>Озвучить</button>
+
+        <div class="status" id="status" hidden>
+          <div class="bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <span id="statusText">Читаю документ…</span>
+          <span class="status-timer" id="statusTimer">0:00</span>
+        </div>
+
+        <div class="error" id="errorBox" hidden>
+          <span id="errorText"></span>
+          <button id="retryBtn">Повторить</button>
+        </div>
+
+        <div class="player" id="player" hidden>
+          <audio id="audioEl" preload="metadata"></audio>
+          <div class="player-row">
+            <button class="play-btn" id="playBtn" aria-label="Воспроизвести">
+              <svg
+                id="playIcon"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="currentColor"
+              >
+                <path d="M2 1.5v11l10-5.5z" />
+              </svg>
+              <svg
+                id="pauseIcon"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="currentColor"
+                hidden
+              >
+                <path d="M2.5 1.5h3v11h-3zM8.5 1.5h3v11h-3z" />
+              </svg>
+            </button>
+            <span class="time" id="currentTime">0:00</span>
+            <input
+              type="range"
+              id="seekBar"
+              min="0"
+              max="100"
+              step="0.1"
+              value="0"
+            />
+            <span class="time" id="duration">0:00</span>
+          </div>
+          <div class="player-meta">
+            <div class="speed-group" id="speedGroup">
+              <button class="speed-btn" data-speed="0.75">0.75×</button>
+              <button class="speed-btn active" data-speed="1">1×</button>
+              <button class="speed-btn" data-speed="1.25">1.25×</button>
+              <button class="speed-btn" data-speed="1.5">1.5×</button>
+              <button class="speed-btn" data-speed="2">2×</button>
+            </div>
+            <a class="download-link" id="downloadLink" download="audio.mp3"
+              >Скачать</a
+            >
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ===================== Вкладка 2: Авто-читалка экрана ===================== -->
+    <div class="tab-content" id="contentTab2">
+      <main class="card">
+        <p class="eyebrow">Screen Reader</p>
+        <h1>Плеер живого потокового чтения</h1>
+        <p class="sub">
+          Настройте силу прокрутки и запустите автоматическое озвучивание
+          экрана.
+        </p>
+
+        <!-- Настройка скролла -->
+        <div class="scroll-settings">
+          <label for="scrollValue">Сила пролистывания (Scroll)</label>
+          <div class="control-group">
+            <input
+              type="range"
+              id="scrollSlider"
+              min="5"
+              max="300"
+              value="30"
+              oninput="updateScrollSetting(this.value)"
+            />
+            <input
+              type="number"
+              id="scrollInput"
+              min="5"
+              max="300"
+              value="30"
+              oninput="updateScrollSetting(this.value)"
+            />
+          </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <button class="btn btn-secondary" onclick="testScrollAndZone()">
+          ⚙️ Протестировать скролл (Выбрать зону)
+        </button>
+        <button class="btn btn-primary" onclick="startInfiniteReading()">
+          ► Запустить бесконечное чтение
+        </button>
+        <button class="btn btn-danger" onclick="resetZone()">
+          Сбросить зону
+        </button>
+
+        <!-- Статус -->
+        <div class="status" id="statusContainer">
+          <div class="bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <span id="pcStatusText">Статус: Ожидание запуска...</span>
+        </div>
+
+        <!-- Скрытый плеер -->
+        <audio id="audioPlayer"></audio>
+      </main>
+    </div>
+
+    <!-- ===================== Логика переключателя вкладок ===================== -->
+    <script>
+      function switchTab(tabIndex) {
+        const control = document.getElementById("segmentedControl");
+        const tabs = control.querySelectorAll(".segment-tab");
+        const content1 = document.getElementById("contentTab1");
+        const content2 = document.getElementById("contentTab2");
+
+        if (tabIndex === 1) {
+          // Двигаем бегунок влево
+          control.classList.remove("tab-2-active");
+          // Меняем цвет текста
+          tabs[0].classList.remove("inactive");
+          tabs[1].classList.add("inactive");
+          // Переключаем видимость блоков
+          content1.classList.add("active");
+          content2.classList.remove("active");
+        } else {
+          // Двигаем бегунок вправо
+          control.classList.add("tab-2-active");
+          // Меняем цвет текста
+          tabs[0].classList.add("inactive");
+          tabs[1].classList.remove("inactive");
+          // Переключаем видимость блоков
+          content1.classList.remove("active");
+          content2.classList.add("active");
+        }
+      }
+    </script>
+
+    <!-- ===================== Скрипт вкладки 1 (audio_pdf) ===================== -->
+    <script>
+      // Если страница открыта как файл (file://), относительный fetch не сработает —
+      // браузер попытается резолвить путь внутри файловой системы. В этом случае
+      // бьём напрямую в адрес локального dev-сервера. Если страница отдаётся самим
+      // FastAPI (через StaticFiles/Jinja) — используем относительный путь.
+      const API_BASE =
+        location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
+      const ENDPOINT = `http://127.0.0.1:8000/audio_pdf/tts-play`;
+      const REQUEST_TIMEOUT_MS = 120000; // 2 минуты — синтез может быть небыстрым
+
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("fileInput");
+      const fileInfo = document.getElementById("fileInfo");
+      const fileName = document.getElementById("fileName");
+      const fileSize = document.getElementById("fileSize");
+      const fileRemove = document.getElementById("fileRemove");
+      const speakBtn = document.getElementById("speakBtn");
+      const statusBox = document.getElementById("status");
+      const statusText = document.getElementById("statusText");
+      const statusTimer = document.getElementById("statusTimer");
+      const errorBox = document.getElementById("errorBox");
+      const errorText = document.getElementById("errorText");
+      const retryBtn = document.getElementById("retryBtn");
+      const player = document.getElementById("player");
+      const audioEl = document.getElementById("audioEl");
+      const playBtn = document.getElementById("playBtn");
+      const playIcon = document.getElementById("playIcon");
+      const pauseIcon = document.getElementById("pauseIcon");
+      const seekBar = document.getElementById("seekBar");
+      const currentTimeEl = document.getElementById("currentTime");
+      const durationEl = document.getElementById("duration");
+      const speedGroup = document.getElementById("speedGroup");
+      const downloadLink = document.getElementById("downloadLink");
+
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 МБ, синхронизировано с бэкендом
+
+      let selectedFile = null;
+      let timerHandle = null;
+      let objectUrl = null;
+
+      function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + " Б";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " КБ";
+        return (bytes / 1024 / 1024).toFixed(1) + " МБ";
+      }
+
+      function formatTime(sec) {
+        if (!isFinite(sec)) return "0:00";
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60)
+          .toString()
+          .padStart(2, "0");
+        return `${m}:${s}`;
+      }
+
+      function showError(message) {
+        errorText.textContent = message;
+        errorBox.hidden = false;
+      }
+
+      function setFile(file) {
+        if (!file) return;
+
+        if (
+          file.type !== "application/pdf" &&
+          !file.name.toLowerCase().endsWith(".pdf")
+        ) {
+          showError("Поддерживаются только PDF-файлы");
+          return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          showError("Файл больше 50 МБ");
+          return;
+        }
+
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatBytes(file.size);
+        fileInfo.hidden = false;
+        speakBtn.disabled = false;
+        errorBox.hidden = true;
+      }
+
+      function clearFile() {
+        selectedFile = null;
+        fileInput.value = "";
+        fileInfo.hidden = true;
+        speakBtn.disabled = true;
+      }
+
+      dropzone.addEventListener("click", () => fileInput.click());
+      dropzone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+      fileInput.addEventListener("change", (e) => setFile(e.target.files[0]));
+
+      ["dragover", "dragenter"].forEach((evt) =>
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.add("dragover");
+        }),
+      );
+      ["dragleave", "drop"].forEach((evt) =>
+        dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("dragover");
+        }),
+      );
+      dropzone.addEventListener("drop", (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) setFile(file);
+      });
+
+      fileRemove.addEventListener("click", (e) => {
+        e.stopPropagation();
+        clearFile();
+      });
+
+      retryBtn.addEventListener("click", () => {
+        errorBox.hidden = true;
+        speak();
+      });
+      speakBtn.addEventListener("click", speak);
+
+      async function speak() {
+        if (!selectedFile) return;
+
+        if (!getToken()) {
+          showError("Войдите в аккаунт, чтобы озвучить документ");
+          return;
+        }
+
+        errorBox.hidden = true;
+        player.hidden = true;
+        speakBtn.disabled = true;
+        statusBox.hidden = false;
+        statusText.textContent = "Читаю документ…";
+
+        let seconds = 0;
+        statusTimer.textContent = "0:00";
+        timerHandle = setInterval(() => {
+          seconds += 1;
+          statusTimer.textContent = formatTime(seconds);
+        }, 1000);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          REQUEST_TIMEOUT_MS,
+        );
+
+        try {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+
+          let response;
+          try {
+            response = await fetch(ENDPOINT, {
+              method: "POST",
+              body: formData,
+              headers: authHeaders(),
+              signal: controller.signal,
+            });
+          } catch (networkErr) {
+            if (networkErr.name === "AbortError") {
+              throw new Error("Сервер не ответил вовремя — попробуйте ещё раз");
+            }
+            throw new Error(
+              `Не удалось подключиться к серверу (${ENDPOINT}). ` +
+                "Проверьте, что бэкенд запущен и разрешает CORS-запросы с этой страницы.",
+            );
+          }
+
+          if (!response.ok) {
+            if (handleAuthResponse(response.status)) {
+              throw new Error("Сессия истекла — войдите снова");
+            }
+            let message = `Сервер ответил ошибкой (${response.status})`;
+            try {
+              const data = await response.json();
+              if (data.detail) message = data.detail;
+            } catch (_) {
+              // тело не JSON — оставляем сообщение по умолчанию
+            }
+            throw new Error(message);
+          }
+
+          const contentType = response.headers.get("Content-Type") || "";
+          let audioSrc;
+
+          if (contentType.startsWith("audio/")) {
+            const blob = await response.blob();
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            objectUrl = URL.createObjectURL(blob);
+            audioSrc = objectUrl;
+          } else {
+            const data = await response.json();
+            if (!data.audio_url)
+              throw new Error(data.detail || "Сервер не вернул аудио");
+            audioSrc = data.audio_url;
+          }
+
+          audioEl.src = audioSrc;
+          downloadLink.href = audioSrc;
+          player.hidden = false;
+          resetPlayerUI();
+        } catch (err) {
+          showError(err.message || "Не удалось озвучить документ");
+        } finally {
+          clearTimeout(timeoutId);
+          clearInterval(timerHandle);
+          statusBox.hidden = true;
+          speakBtn.disabled = false;
+        }
+      }
+
+      function resetPlayerUI() {
+        playIcon.hidden = false;
+        pauseIcon.hidden = true;
+        seekBar.value = 0;
+        currentTimeEl.textContent = "0:00";
+        durationEl.textContent = "0:00";
+        audioEl.playbackRate = 1;
+        document
+          .querySelectorAll(".speed-btn")
+          .forEach((b) =>
+            b.classList.toggle("active", b.dataset.speed === "1"),
+          );
+      }
+
+      playBtn.addEventListener("click", () => {
+        if (audioEl.paused) audioEl.play();
+        else audioEl.pause();
+      });
+      audioEl.addEventListener("play", () => {
+        playIcon.hidden = true;
+        pauseIcon.hidden = false;
+      });
+      audioEl.addEventListener("pause", () => {
+        playIcon.hidden = false;
+        pauseIcon.hidden = true;
+      });
+      audioEl.addEventListener("ended", () => {
+        playIcon.hidden = false;
+        pauseIcon.hidden = true;
+      });
+
+      audioEl.addEventListener("loadedmetadata", () => {
+        seekBar.max = audioEl.duration;
+        durationEl.textContent = formatTime(audioEl.duration);
+      });
+      audioEl.addEventListener("timeupdate", () => {
+        seekBar.value = audioEl.currentTime;
+        currentTimeEl.textContent = formatTime(audioEl.currentTime);
+      });
+      seekBar.addEventListener("input", () => {
+        audioEl.currentTime = seekBar.value;
+      });
+
+      speedGroup.addEventListener("click", (e) => {
+        const btn = e.target.closest(".speed-btn");
+        if (!btn) return;
+        audioEl.playbackRate = parseFloat(btn.dataset.speed);
+        document
+          .querySelectorAll(".speed-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    </script>
+
+    <!-- ===================== Скрипт вкладки 2 (Авто-читалка экрана) ===================== -->
+    <script>
+      const player_2 = document.getElementById("audioPlayer");
+      const statusDiv = document.getElementById("pcStatusText");
+      const scrollSlider = document.getElementById("scrollSlider");
+      const scrollInput = document.getElementById("scrollInput");
+      let objectUrl_2 = null;
+
+      async function updateScrollSetting(value) {
+        scrollSlider.value = value;
+        scrollInput.value = value;
+        if (!getToken()) {
+          // Это фоновая синхронизация настройки (в т.ч. при загрузке страницы) —
+          // молча пропускаем запрос, если пользователь ещё не вошёл.
+          return;
+        }
+        try {
+          const resp = await fetch(
+            `http://127.0.0.1:8000/PC_screen/setting_scroll?value=${value}`,
+            { method: "POST", headers: authHeaders() },
+          );
+          if (handleAuthResponse(resp.status)) return;
+          console.log(`Сила скролла обновлена: ${value}`);
+        } catch (e) {
+          console.error("Ошибка обновления скролла:", e);
+        }
+      }
+      // Функция тестирования зоны и силы скролла без запуска TTS
+      async function testScrollAndZone() {
+        if (!getToken()) {
+          statusDiv.innerText =
+            "Статус: Войдите в аккаунт, чтобы использовать эту функцию";
+          return;
+        }
+        statusDiv.innerText =
+          "Статус: Выберите область книги для калибровки...";
+        try {
+          const response = await fetch(
+            "http://127.0.0.1:8000/PC_screen/test-scroll",
+            { method: "POST", headers: authHeaders() },
+          );
+          if (handleAuthResponse(response.status)) {
+            statusDiv.innerText = "Статус: Сессия истекла — войдите снова";
+            return;
+          }
+          if (response.ok) {
+            statusDiv.innerText =
+              "Статус: Пробный скролл выполнен успешно! Проверьте окно книги.";
+          } else {
+            statusDiv.innerText =
+              "Статус: Ошибка калибровки. Возможно, выделение отменено.";
+          }
+        } catch (e) {
+          statusDiv.innerText = "Статус: Ошибка связи с сервером.";
+          console.error(e);
+        }
+      }
+
+      // Захват области экрана и озвучка. Раньше адрес отдавался напрямую в
+      // src аудиоплеера, но у <audio> нельзя выставить заголовок
+      // Authorization — поэтому теперь запрос идёт через fetch с токеном,
+      // а плееру передаётся Blob-ссылка на уже полученный аудиофайл.
+      async function startInfiniteReading() {
+        if (!getToken()) {
+          statusDiv.innerText =
+            "Статус: Войдите в аккаунт, чтобы начать чтение";
+          return;
+        }
+
+        statusDiv.innerText = "Статус: Захват области/Чтение страницы...";
+
+        try {
+          const resp = await fetch(
+            `http://127.0.0.1:8000/PC_screen/capture-and-play?t=${new Date().getTime()}`,
+            { headers: authHeaders() },
+          );
+
+          if (handleAuthResponse(resp.status)) {
+            statusDiv.innerText = "Статус: Сессия истекла — войдите снова";
+            return;
+          }
+
+          if (!resp.ok) {
+            statusDiv.innerText =
+              "Статус: Пропуск пустой зоны или ошибка. Пробуем снова через 3 сек...";
+            setTimeout(startInfiniteReading, 3000);
+            return;
+          }
+
+          const blob = await resp.blob();
+          if (objectUrl_2) URL.revokeObjectURL(objectUrl_2);
+          objectUrl_2 = URL.createObjectURL(blob);
+          player_2.src = objectUrl_2;
+
+          player_2.onended = () => {
+            statusDiv.innerText =
+              "Статус: Перелистывание и захват следующей страницы...";
+            startInfiniteReading();
+          };
+
+          player_2.onerror = () => {
+            statusDiv.innerText =
+              "Статус: Пропуск пустой зоны или ошибка. Пробуем снова через 3 сек...";
+            setTimeout(startInfiniteReading, 3000);
+          };
+
+          await player_2.play();
+          statusDiv.innerText = "Статус: Слушаем текст...";
+        } catch (e) {
+          statusDiv.innerText =
+            "Статус: Ошибка связи с сервером. Пробуем снова через 3 сек...";
+          setTimeout(startInfiniteReading, 3000);
+          console.log(e);
+        }
+      }
+
+      async function resetZone() {
+        if (!getToken()) {
+          statusDiv.innerText =
+            "Статус: Войдите в аккаунт, чтобы сбросить зону";
+          return;
+        }
+        try {
+          const resp = await fetch("http://127.0.0.1:8000/PC_screen/reset", {
+            headers: authHeaders(),
+          });
+          if (handleAuthResponse(resp.status)) {
+            statusDiv.innerText = "Статус: Сессия истекла — войдите снова";
+            return;
+          }
+          statusDiv.innerText =
+            "Статус: Координаты сброшены. Выделите область заново.";
+        } catch (e) {
+          statusDiv.innerText = "Статус: Ошибка связи с сервером.";
+          console.error(e);
+        }
+      }
+
+      updateScrollSetting(scrollSlider.value);
+    </script>
+  </body>
+</html>

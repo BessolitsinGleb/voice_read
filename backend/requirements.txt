@@ -1,0 +1,13 @@
+fitz
+PyMuPDF
+fastapi
+sqlalchemy
+pydantic-settings
+pydantic
+uvicorn
+passlib
+jose
+asyncio
+asyncpg
+greenlet
+python-multipart
